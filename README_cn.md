@@ -1,4 +1,4 @@
-## lidar-imu-calibration（中文）
+## lidar-imu-calibration
 **LI-Init** 是一套稳健的实时激光‑惯性初始化方法。我们对原始代码做了修改，使其支持 Apollo 系统里常见的“无 ring 字段”点云。
 
 ### 处理 Apollo record
