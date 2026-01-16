@@ -135,11 +135,21 @@ class Preprocess
   vector<orgtype> typess[128]; //maximum 128 line lidar
   int lidar_type, point_filter_num, N_SCANS;;
   double blind;
+  bool roi_enable;
+  double roi_x_min, roi_x_max;
+  double roi_y_min, roi_y_max;
+  double roi_z_min, roi_z_max;
   bool feature_enabled, given_offset_time;
   ros::Publisher pub_full, pub_surf, pub_corn;
     
 
   private:
+  inline bool roi_keep(float x, float y, float z) const {
+    if (!roi_enable) return true;
+    return (x >= roi_x_min && x <= roi_x_max &&
+            y >= roi_y_min && y <= roi_y_max &&
+            z >= roi_z_min && z <= roi_z_max);
+  }
   void avia_handler(const livox_ros_driver::CustomMsg::ConstPtr &msg);
   void oust_handler(const sensor_msgs::PointCloud2::ConstPtr &msg);
   void velodyne_handler(const sensor_msgs::PointCloud2::ConstPtr &msg);

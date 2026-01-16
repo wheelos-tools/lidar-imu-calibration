@@ -828,6 +828,13 @@ int main(int argc, char **argv) {
     nh.param<double>("mapping/b_gyr_cov", b_gyr_cov, 0.0001);
     nh.param<double>("mapping/b_acc_cov", b_acc_cov, 0.0001);
     nh.param<double>("preprocess/blind", p_pre->blind, 1.0);
+    nh.param<bool>("preprocess/roi_enable", p_pre->roi_enable, false);
+    nh.param<double>("preprocess/roi_x_min", p_pre->roi_x_min, -1e9);
+    nh.param<double>("preprocess/roi_x_max", p_pre->roi_x_max, 1e9);
+    nh.param<double>("preprocess/roi_y_min", p_pre->roi_y_min, -1e9);
+    nh.param<double>("preprocess/roi_y_max", p_pre->roi_y_max, 1e9);
+    nh.param<double>("preprocess/roi_z_min", p_pre->roi_z_min, -1e9);
+    nh.param<double>("preprocess/roi_z_max", p_pre->roi_z_max, 1e9);
     nh.param<int>("preprocess/lidar_type", lidar_type, AVIA);
     nh.param<int>("preprocess/scan_line", p_pre->N_SCANS, 16);
     nh.param<bool>("preprocess/feature_extract_en", p_pre->feature_enabled, 0);
@@ -850,6 +857,22 @@ int main(int argc, char **argv) {
     nh.param<bool>("runtime_pos_log_enable", runtime_pos_log, 0);
     nh.param<bool>("pcd_save/pcd_save_en", pcd_save_en, false);
     nh.param<int>("pcd_save/interval", pcd_save_interval, -1);
+
+    if (p_pre->roi_enable) {
+        auto normalize_range = [](double &min_v, double &max_v, const char *tag) {
+            if (min_v > max_v) {
+                std::swap(min_v, max_v);
+                ROS_WARN("[ROI] %s swapped (min > max).", tag);
+            }
+        };
+        normalize_range(p_pre->roi_x_min, p_pre->roi_x_max, "x");
+        normalize_range(p_pre->roi_y_min, p_pre->roi_y_max, "y");
+        normalize_range(p_pre->roi_z_min, p_pre->roi_z_max, "z");
+        ROS_INFO("[ROI] enabled: x=[%.3f, %.3f], y=[%.3f, %.3f], z=[%.3f, %.3f]",
+                 p_pre->roi_x_min, p_pre->roi_x_max,
+                 p_pre->roi_y_min, p_pre->roi_y_max,
+                 p_pre->roi_z_min, p_pre->roi_z_max);
+    }
 
     cout << "lidar_type: " << lidar_type << endl;
     cout << "LiDAR-only odometry starts." << endl;

@@ -6,6 +6,13 @@ preprocess:
     lidar_type: 6
     scan_line: 32
     blind: 2
+    roi_enable: false
+    roi_x_min: -1e9
+    roi_x_max: 1e9
+    roi_y_min: -1e9
+    roi_y_max: 1e9
+    roi_z_min: -1e9
+    roi_z_max: 1e9
     feature_extract_en: false
 
 initialization:

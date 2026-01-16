@@ -8,7 +8,14 @@ const bool time_list_cut_frame(PointType &x, PointType &y) {
 }
 
 Preprocess::Preprocess()
-        : feature_enabled(0), lidar_type(AVIA), blind(1.0), point_filter_num(1) {
+        : feature_enabled(0),
+          lidar_type(AVIA),
+          blind(1.0),
+          roi_enable(false),
+          roi_x_min(-1e9), roi_x_max(1e9),
+          roi_y_min(-1e9), roi_y_max(1e9),
+          roi_z_min(-1e9), roi_z_max(1e9),
+          point_filter_num(1) {
     inf_bound = 10;
     N_SCANS = 6;
     group_size = 8;
@@ -72,6 +79,7 @@ void Preprocess::process_cut_frame_livox(const livox_ros_driver::CustomMsg::Cons
 
                 double dist = pl_full[i].x * pl_full[i].x + pl_full[i].y * pl_full[i].y + pl_full[i].z * pl_full[i].z;
                 if (dist < blind * blind) continue;
+                if (!roi_keep(pl_full[i].x, pl_full[i].y, pl_full[i].z)) continue;
 
                 if ((abs(pl_full[i].x - pl_full[i - 1].x) > 1e-7)
                     || (abs(pl_full[i].y - pl_full[i - 1].y) > 1e-7)
@@ -199,6 +207,7 @@ Preprocess::process_cut_frame_pcl2(const sensor_msgs::PointCloud2::ConstPtr &msg
                 time_last[layer] = added_pt.curvature;
             }
 
+            if (!roi_keep(added_pt.x, added_pt.y, added_pt.z)) continue;
 
             if (i % point_filter_num == 0 && pl_orig.points[i].ring < N_SCANS) {
                 pl_surf.points.push_back(added_pt);
@@ -224,6 +233,8 @@ Preprocess::process_cut_frame_pcl2(const sensor_msgs::PointCloud2::ConstPtr &msg
             if ( dist < blind * blind || isnan(added_pt.x) || isnan(added_pt.y) || isnan(added_pt.z))
                 continue;
 
+            if (!roi_keep(added_pt.x, added_pt.y, added_pt.z)) continue;
+
             if (i % point_filter_num == 0 && pl_orig.points[i].ring < N_SCANS) {
                 pl_surf.points.push_back(added_pt);
             }
@@ -248,6 +259,8 @@ Preprocess::process_cut_frame_pcl2(const sensor_msgs::PointCloud2::ConstPtr &msg
             double dist = added_pt.x * added_pt.x + added_pt.y * added_pt.y + added_pt.z * added_pt.z;
             if ( dist < blind * blind || isnan(added_pt.x) || isnan(added_pt.y) || isnan(added_pt.z))
                 continue;
+
+            if (!roi_keep(added_pt.x, added_pt.y, added_pt.z)) continue;
 
             if (i % point_filter_num == 0 && pl_orig.points[i].ring < N_SCANS) {
                 pl_surf.points.push_back(added_pt);
@@ -312,6 +325,8 @@ Preprocess::process_cut_frame_pcl2(const sensor_msgs::PointCloud2::ConstPtr &msg
                 yaw_last[layer] = yaw_angle;
                 time_last[layer] = added_pt.curvature;
             }
+
+            if (!roi_keep(added_pt.x, added_pt.y, added_pt.z)) continue;
 
             if (i % point_filter_num == 0 && pl_orig.points[i].ring < N_SCANS) {
                 pl_surf.points.push_back(added_pt);
@@ -405,6 +420,7 @@ void Preprocess::avia_handler(const livox_ros_driver::CustomMsg::ConstPtr &msg) 
 
                 double dist = pl_full[i].x * pl_full[i].x + pl_full[i].y * pl_full[i].y + pl_full[i].z * pl_full[i].z;
                 if (dist < blind * blind) continue;
+                if (!roi_keep(pl_full[i].x, pl_full[i].y, pl_full[i].z)) continue;
 
                 if ((abs(pl_full[i].x - pl_full[i - 1].x) > 1e-7)
                     || (abs(pl_full[i].y - pl_full[i - 1].y) > 1e-7)
@@ -453,6 +469,7 @@ void Preprocess::avia_handler(const livox_ros_driver::CustomMsg::ConstPtr &msg) 
 
                     double dist = pl_full[i].x * pl_full[i].x + pl_full[i].y * pl_full[i].y + pl_full[i].z * pl_full[i].z;
                     if (dist < blind * blind) continue;
+                    if (!roi_keep(pl_full[i].x, pl_full[i].y, pl_full[i].z)) continue;
 
                     if ((abs(pl_full[i].x - pl_full[i - 1].x) > 1e-7)
                         || (abs(pl_full[i].y - pl_full[i - 1].y) > 1e-7)
@@ -489,6 +506,7 @@ void Preprocess::l515_handler(const sensor_msgs::PointCloud2::ConstPtr &msg) {
         added_pt.x = pl_orig.points[i].x;
         added_pt.y = pl_orig.points[i].y;
         added_pt.z = pl_orig.points[i].z;
+        if (!roi_keep(added_pt.x, added_pt.y, added_pt.z)) continue;
         added_pt.normal_x = pl_orig.points[i].r;
         added_pt.normal_y = pl_orig.points[i].g;
         added_pt.normal_z = pl_orig.points[i].b;
@@ -526,6 +544,7 @@ void Preprocess::oust_handler(const sensor_msgs::PointCloud2::ConstPtr &msg) {
             double dist = added_pt.x * added_pt.x + added_pt.y * added_pt.y + added_pt.z * added_pt.z;
             if ( dist < blind * blind || isnan(added_pt.x) || isnan(added_pt.y) || isnan(added_pt.z))
                 continue;
+            if (!roi_keep(added_pt.x, added_pt.y, added_pt.z)) continue;
 
             double yaw_angle = atan2(added_pt.y, added_pt.x) * 57.3;
             if (yaw_angle >= 180.0)
@@ -573,6 +592,7 @@ void Preprocess::oust_handler(const sensor_msgs::PointCloud2::ConstPtr &msg) {
             double dist = added_pt.x * added_pt.x + added_pt.y * added_pt.y + added_pt.z * added_pt.z;
             if ( dist < blind * blind || isnan(added_pt.x) || isnan(added_pt.y) || isnan(added_pt.z))
                 continue;
+            if (!roi_keep(added_pt.x, added_pt.y, added_pt.z)) continue;
 
             if (pl_orig.points[i].ring < N_SCANS)
                 pl_surf.points.push_back(added_pt);
@@ -672,6 +692,8 @@ void Preprocess::velodyne_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
                 time_last[layer] = added_pt.curvature;
             }
 
+            if (!roi_keep(added_pt.x, added_pt.y, added_pt.z)) continue;
+
             pl_buff[layer].points.push_back(added_pt);
         }
 
@@ -748,6 +770,8 @@ void Preprocess::velodyne_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
                 time_last[layer] = added_pt.curvature;
             }
 
+            if (!roi_keep(added_pt.x, added_pt.y, added_pt.z)) continue;
+
             if (i % point_filter_num == 0) {
                 pl_surf.points.push_back(added_pt);
             }
@@ -763,7 +787,10 @@ void Preprocess::velodyne_handler_kitti(const sensor_msgs::PointCloud2::ConstPtr
         if (i % point_filter_num == 0) {
             double dist = pl_full[i].x * pl_full[i].x + pl_full[i].y * pl_full[i].y + pl_full[i].z * pl_full[i].z;
             if (dist > blind * blind)
+            {
+                if (!roi_keep(pl_full[i].x, pl_full[i].y, pl_full[i].z)) continue;
                 pl_surf.points.push_back(pl_full[i]);
+            }
         }
     }
 }
